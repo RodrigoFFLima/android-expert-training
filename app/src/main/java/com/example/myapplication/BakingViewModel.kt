@@ -18,7 +18,7 @@ class BakingViewModel : ViewModel() {
         _uiState.asStateFlow()
 
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
+        modelName = "gemini-flash",
         apiKey = BuildConfig.apiKey
     )
 
@@ -29,19 +29,19 @@ class BakingViewModel : ViewModel() {
         _uiState.value = UiState.Loading
 
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val response = generativeModel.generateContent(
+            runCatching {
+                generativeModel.generateContent(
                     content {
                         image(bitmap)
                         text(prompt)
                     }
                 )
-                response.text?.let { outputContent ->
-                    _uiState.value = UiState.Success(outputContent)
-                }
-            } catch (e: Exception) {
-                _uiState.value = UiState.Error(e.localizedMessage ?: "")
+                    .text
             }
+                .takeIf { it.isSuccess }
+                ?.let { response ->
+                    _uiState.value = UiState.Success(response.getOrDefault("")!!)
+                }
         }
     }
 }
