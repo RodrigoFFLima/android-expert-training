@@ -33,14 +33,18 @@ class DetailActivity : ComponentActivity() {
         
         // Get the image resource ID from the intent
         val imageResourceId = intent.getIntExtra(IMAGE_RESOURCE_ID_KEY, -1)
-        
+        val factory = BakingViewModelFactory(this)
+
         setContent {
+            val viewModel: BakingViewModel = viewModel(
+                factory = factory
+            )
             MyApplicationTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    ImageDetailScreen(imageResourceId)
+                    ImageDetailScreen(imageResourceId, viewModel)
                 }
             }
         }
@@ -53,7 +57,6 @@ class DetailActivity : ComponentActivity() {
 
 @Composable
 fun ImageDetailScreen(imageResourceId: Int, viewModel: BakingViewModel = viewModel()) {
-    viewModel.init(LocalContext.current)
     val uiState by viewModel.uiState.collectAsState()
 
     Column(

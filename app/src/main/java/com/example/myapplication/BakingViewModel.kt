@@ -15,7 +15,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 @SuppressLint("StaticFieldLeak")
-class BakingViewModel : ViewModel() {
+class BakingViewModel(
+    private val context: Context
+) : ViewModel() {
     private val _uiState: MutableStateFlow<UiState> =
         MutableStateFlow(UiState.Initial)
     val uiState: StateFlow<UiState> =
@@ -25,11 +27,6 @@ class BakingViewModel : ViewModel() {
         modelName = "gemini-1.5-flash",
         apiKey = BuildConfig.apiKey
     )
-    private lateinit var context: Context
-
-    fun init(context: Context) {
-        this.context = context
-    }
 
     fun sendPrompt(
         bitmap: Bitmap,

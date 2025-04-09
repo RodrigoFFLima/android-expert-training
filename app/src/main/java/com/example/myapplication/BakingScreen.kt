@@ -57,12 +57,10 @@ val imageDescriptions = arrayOf(
 fun BakingScreen(
     bakingViewModel: BakingViewModel = viewModel()
 ) {
-    bakingViewModel.init(LocalContext.current)
     val selectedImage = remember { mutableIntStateOf(0) }
     val placeholderPrompt = stringResource(R.string.prompt_placeholder)
     val placeholderResult = stringResource(R.string.results_placeholder)
     var prompt by rememberSaveable { mutableStateOf(placeholderPrompt) }
-    var result by rememberSaveable { mutableStateOf(placeholderResult) }
     val uiState by bakingViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -135,12 +133,14 @@ fun BakingScreen(
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         } else {
             var textColor = MaterialTheme.colorScheme.onSurface
-            if (uiState is UiState.Error) {
+            val result = if (uiState is UiState.Error) {
                 textColor = MaterialTheme.colorScheme.error
-                result = (uiState as UiState.Error).errorMessage
+                (uiState as UiState.Error).errorMessage
             } else if (uiState is UiState.Success) {
                 textColor = MaterialTheme.colorScheme.onSurface
-                result = (uiState as UiState.Success).outputText
+                (uiState as UiState.Success).outputText
+            } else {
+                placeholderResult
             }
             val scrollState = rememberScrollState()
             Text(
