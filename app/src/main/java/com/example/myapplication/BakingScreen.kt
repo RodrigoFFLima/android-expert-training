@@ -1,5 +1,6 @@
 package com.example.myapplication
 
+import android.content.Intent
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -56,6 +57,7 @@ val imageDescriptions = arrayOf(
 fun BakingScreen(
     bakingViewModel: BakingViewModel = viewModel()
 ) {
+    bakingViewModel.init(LocalContext.current)
     val selectedImage = remember { mutableIntStateOf(0) }
     val placeholderPrompt = stringResource(R.string.prompt_placeholder)
     val placeholderResult = stringResource(R.string.results_placeholder)
@@ -82,6 +84,11 @@ fun BakingScreen(
                     .requiredSize(200.dp)
                     .clickable {
                         selectedImage.intValue = index
+
+                        val intent = Intent(context, DetailActivity::class.java).apply {
+                            putExtra(DetailActivity.IMAGE_RESOURCE_ID_KEY, images[index])
+                        }
+                        context.startActivity(intent)
                     }
                 if (index == selectedImage.intValue) {
                     imageModifier =

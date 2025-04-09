@@ -1,6 +1,9 @@
 package com.example.myapplication
 
+import android.annotation.SuppressLint
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
@@ -11,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+@SuppressLint("StaticFieldLeak")
 class BakingViewModel : ViewModel() {
     private val _uiState: MutableStateFlow<UiState> =
         MutableStateFlow(UiState.Initial)
@@ -21,6 +25,11 @@ class BakingViewModel : ViewModel() {
         modelName = "gemini-1.5-flash",
         apiKey = BuildConfig.apiKey
     )
+    private lateinit var context: Context
+
+    fun init(context: Context) {
+        this.context = context
+    }
 
     fun sendPrompt(
         bitmap: Bitmap,
@@ -42,6 +51,22 @@ class BakingViewModel : ViewModel() {
             } catch (e: Exception) {
                 _uiState.value = UiState.Error(e.localizedMessage ?: "")
             }
+        }
+    }
+
+    fun describeImage(resourceId: Int) {
+        val image = loadBitmapFromResource(context, resourceId)
+        if (image != null) {
+            sendPrompt(image, "Describe this Image")
+        }
+    }
+
+    private fun loadBitmapFromResource(context: Context, resourceId: Int): Bitmap? {
+        return try {
+            BitmapFactory.decodeResource(context.resources, resourceId)
+        } catch (e: Exception) {
+            _uiState.value = UiState.Error("Failed to load image: ${e.localizedMessage}")
+            null
         }
     }
 }
