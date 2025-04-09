@@ -54,6 +54,7 @@ class DetailActivity : ComponentActivity() {
 @Composable
 fun ImageDetailScreen(imageResourceId: Int, viewModel: BakingViewModel = viewModel()) {
     viewModel.init(LocalContext.current)
+    viewModel.describeImage(imageResourceId)
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
@@ -76,9 +77,7 @@ fun ImageDetailScreen(imageResourceId: Int, viewModel: BakingViewModel = viewMod
         
         // Display state
         when (val state = uiState) {
-            is UiState.Initial -> {
-                viewModel.describeImage(imageResourceId)
-            }
+            is UiState.Initial,
             is UiState.Loading -> {
                 CircularProgressIndicator()
             }
