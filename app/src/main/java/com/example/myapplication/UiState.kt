@@ -1,27 +1,53 @@
 package com.example.myapplication
 
+import com.example.myapplication.data.UnsplashPhoto
+
 /**
- * A sealed hierarchy describing the state of the text generation.
+ * Top-level UI state for the home screen
  */
-sealed interface UiState {
-
+sealed interface HomeUiState {
     /**
-     * Empty state when the screen is first shown
+     * Initial loading state for photos
      */
-    object Initial : UiState
-
+    object Loading : HomeUiState
+    
     /**
-     * Still loading
+     * Error state for the home screen
      */
-    object Loading : UiState
-
+    data class Error(val errorMessage: String) : HomeUiState
+    
     /**
-     * Text has been generated
+     * Success state containing photos and prompt information
      */
-    data class Success(val outputText: String) : UiState
+    data class Success(
+        val photos: List<UnsplashPhoto>,
+        val isPromptLoading: Boolean = false,
+        val outputText: String? = null,
+        val promptError: String? = null
+    ) : HomeUiState
+}
 
+/**
+ * Top-level UI state for the detail screen
+ */
+sealed interface DetailUiState {
     /**
-     * There was an error generating text
+     * Initial state
      */
-    data class Error(val errorMessage: String) : UiState
+    object Initial : DetailUiState
+    
+    /**
+     * Loading state
+     */
+    object Loading : DetailUiState
+    
+    /**
+     * Success state with the generated description
+     */
+    data class Success(val outputText: String) : DetailUiState
+    
+    /**
+     * Error state
+     */
+    data class Error(val errorMessage: String) : DetailUiState
 }

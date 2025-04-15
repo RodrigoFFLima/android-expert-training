@@ -25,14 +25,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
 class DetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // Get the image resource ID from the intent
+        // Get the image information from the intent
         val imageResourceId = intent.getIntExtra(IMAGE_RESOURCE_ID_KEY, -1)
+        val imageUrl = intent.getStringExtra(IMAGE_URL_KEY)
+        val photographerName = intent.getStringExtra(PHOTOGRAPHER_NAME_KEY)
         
         setContent {
             MyApplicationTheme {
@@ -40,7 +43,13 @@ class DetailActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    ImageDetailScreen(imageResourceId)
+                    if (imageUrl != null) {
+                        // Remote image from Unsplash
+                        ImageDetailScreenFromUrl(imageUrl, photographerName ?: "Unknown photographer")
+                    } else if (imageResourceId != -1) {
+                        // Fallback to local resource
+                        ImageDetailScreen(imageResourceId)
+                    }
                 }
             }
         }
@@ -48,13 +57,15 @@ class DetailActivity : ComponentActivity() {
     
     companion object {
         const val IMAGE_RESOURCE_ID_KEY = "image_resource_id"
+        const val IMAGE_URL_KEY = "image_url" 
+        const val PHOTOGRAPHER_NAME_KEY = "photographer_name"
     }
 }
 
 @Composable
-fun ImageDetailScreen(imageResourceId: Int, viewModel: BakingViewModel = viewModel()) {
+fun ImageDetailScreen(imageResourceId: Int, viewModel: DetailViewModel = viewModel()) {
     viewModel.init(LocalContext.current)
-    val uiState by viewModel.uiState.collectAsState()
+    val detailUiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -75,24 +86,85 @@ fun ImageDetailScreen(imageResourceId: Int, viewModel: BakingViewModel = viewMod
         Spacer(modifier = Modifier.height(16.dp))
         
         // Display state
-        when (val state = uiState) {
-            is UiState.Initial -> {
+        when (detailUiState) {
+            is DetailUiState.Initial -> {
                 viewModel.describeImage(imageResourceId)
             }
-            is UiState.Loading -> {
+            is DetailUiState.Loading -> {
                 CircularProgressIndicator()
             }
-            is UiState.Success -> {
+            is DetailUiState.Success -> {
                 Text(
                     text = "AI Description:",
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                Text(text = state.outputText)
+                Text(text = (detailUiState as DetailUiState.Success).outputText)
             }
-            is UiState.Error -> {
+            is DetailUiState.Error -> {
                 Text(
-                    text = "Error: ${state.errorMessage}",
+                    text = "Error: ${(detailUiState as DetailUiState.Error).errorMessage}",
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ImageDetailScreenFromUrl(
+    imageUrl: String,
+    photographerName: String,
+    viewModel: DetailViewModel = viewModel()
+) {
+    viewModel.init(LocalContext.current)
+    val detailUiState by viewModel.uiState.collectAsState()
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Display the full-size image from URL
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = "Detailed image view",
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(300.dp),
+            contentScale = ContentScale.Crop
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Display photographer credit
+        Text(
+            text = "Photo by $photographerName on Unsplash",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // Display state
+        when (detailUiState) {
+            is DetailUiState.Initial -> {
+                // Trigger Gemini processing for the URL image
+                viewModel.describeImageFromUrl(imageUrl, photographerName)
+            }
+            is DetailUiState.Loading -> {
+                CircularProgressIndicator()
+            }
+            is DetailUiState.Success -> {
+                Text(
+                    text = "AI Description:",
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                Text(text = (detailUiState as DetailUiState.Success).outputText)
+            }
+            is DetailUiState.Error -> {
+                Text(
+                    text = "Error: ${(detailUiState as DetailUiState.Error).errorMessage}",
                     color = MaterialTheme.colorScheme.error
                 )
             }
