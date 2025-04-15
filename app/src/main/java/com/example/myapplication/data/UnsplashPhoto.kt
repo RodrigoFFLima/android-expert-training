@@ -20,6 +20,18 @@ data class UnsplashPhoto(
     // Get the best available description
     val bestDescription: String
         get() = description ?: alt_description ?: "Baked goods image"
+        
+    // Convert to FavoritePhoto
+    fun toFavoritePhoto(): FavoritePhoto {
+        return FavoritePhoto(
+            photoId = id,
+            imageUrl = urls.regular,
+            thumbnailUrl = urls.small,
+            description = bestDescription,
+            userName = user.fullName,
+            userUsername = user.username
+        )
+    }
 }
 
 data class UnsplashUrls(

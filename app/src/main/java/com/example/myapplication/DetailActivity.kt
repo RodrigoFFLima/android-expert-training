@@ -3,15 +3,23 @@ package com.example.myapplication
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -20,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,23 +39,35 @@ class DetailActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
+        // Enable edge-to-edge display
+        enableEdgeToEdge()
+        
         // Get the image information from the intent
         val imageResourceId = intent.getIntExtra(IMAGE_RESOURCE_ID_KEY, -1)
         val imageUrl = intent.getStringExtra(IMAGE_URL_KEY)
         val photographerName = intent.getStringExtra(PHOTOGRAPHER_NAME_KEY)
+        val photoId = intent.getStringExtra(PHOTO_ID_KEY)
         
         setContent {
             MyApplicationTheme {
-                Surface(
+                // Use Scaffold for proper insets handling
+                Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    if (imageUrl != null) {
-                        // Remote image from Unsplash
-                        ImageDetailScreenFromUrl(imageUrl, photographerName ?: "Unknown photographer")
-                    } else if (imageResourceId != -1) {
-                        // Fallback to local resource
-                        ImageDetailScreen(imageResourceId)
+                ) { innerPadding ->
+                    // A surface container using the 'background' color from the theme
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        if (imageUrl != null) {
+                            // Remote image from Unsplash
+                            ImageDetailScreenFromUrl(imageUrl, photographerName ?: "Unknown photographer", photoId)
+                        } else if (imageResourceId != -1) {
+                            // Fallback to local resource
+                            ImageDetailScreen(imageResourceId)
+                        }
                     }
                 }
             }
@@ -59,18 +78,18 @@ class DetailActivity : ComponentActivity() {
         const val IMAGE_RESOURCE_ID_KEY = "image_resource_id"
         const val IMAGE_URL_KEY = "image_url" 
         const val PHOTOGRAPHER_NAME_KEY = "photographer_name"
+        const val PHOTO_ID_KEY = "photo_id"
     }
 }
 
 @Composable
 fun ImageDetailScreen(imageResourceId: Int, viewModel: DetailViewModel = viewModel()) {
-    viewModel.init(LocalContext.current)
     val detailUiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Display the full-size image
@@ -115,15 +134,15 @@ fun ImageDetailScreen(imageResourceId: Int, viewModel: DetailViewModel = viewMod
 fun ImageDetailScreenFromUrl(
     imageUrl: String,
     photographerName: String,
+    photoId: String?,
     viewModel: DetailViewModel = viewModel()
 ) {
-    viewModel.init(LocalContext.current)
     val detailUiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Display the full-size image from URL
@@ -138,18 +157,41 @@ fun ImageDetailScreenFromUrl(
 
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Display photographer credit
-        Text(
-            text = "Photo by $photographerName on Unsplash",
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        // Row for photographer credit and favorite button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Display photographer credit
+            Text(
+                text = "Photo by $photographerName on Unsplash",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            
+            // Only show favorite button if we have a photoId
+            if (photoId != null) {
+                // Favorite button - only shown when in Success state with isFavorite status
+                if (detailUiState is DetailUiState.Success) {
+                    val isFavorite = (detailUiState as DetailUiState.Success).isFavorite
+                    IconButton(onClick = { viewModel.toggleFavorite() }) {
+                        Icon(
+                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
         
         // Display state
         when (detailUiState) {
             is DetailUiState.Initial -> {
                 // Trigger Gemini processing for the URL image
-                viewModel.describeImageFromUrl(imageUrl, photographerName)
+                viewModel.describeImageFromUrl(imageUrl, photographerName, photoId)
             }
             is DetailUiState.Loading -> {
                 CircularProgressIndicator()

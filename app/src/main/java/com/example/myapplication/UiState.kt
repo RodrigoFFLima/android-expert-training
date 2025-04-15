@@ -21,9 +21,11 @@ sealed interface HomeUiState {
      */
     data class Success(
         val photos: List<UnsplashPhoto>,
+        val favoritePhotos: List<UnsplashPhoto> = emptyList(),
         val isPromptLoading: Boolean = false,
         val outputText: String? = null,
-        val promptError: String? = null
+        val promptError: String? = null,
+        val showFavoritesOnly: Boolean = false
     ) : HomeUiState
 }
 
@@ -44,7 +46,10 @@ sealed interface DetailUiState {
     /**
      * Success state with the generated description
      */
-    data class Success(val outputText: String) : DetailUiState
+    data class Success(
+        val outputText: String,
+        val isFavorite: Boolean = false
+    ) : DetailUiState
     
     /**
      * Error state
