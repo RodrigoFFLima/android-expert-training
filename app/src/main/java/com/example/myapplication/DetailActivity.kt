@@ -104,7 +104,7 @@ fun DetailScreen(viewModel: DetailViewModel) {
             // Remote image from URL
             AsyncImage(
                 model = detailUiState.imageUrl,
-                contentDescription = detailUiState.altDescription ?: "Detailed image view",
+                contentDescription = "Detailed image view",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp),
@@ -114,7 +114,7 @@ fun DetailScreen(viewModel: DetailViewModel) {
             // Local resource image
             Image(
                 painter = painterResource(id = detailUiState.imageResourceId),
-                contentDescription = detailUiState.altDescription ?: "Detailed image view",
+                contentDescription = "Detailed image view",
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp),
