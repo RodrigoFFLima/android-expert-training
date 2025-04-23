@@ -195,12 +195,10 @@ class DetailViewModel(application: Application) : AndroidViewModel(application) 
     
     fun toggleFavorite() {
         currentPhoto?.let { photo ->
-            viewModelScope.launch {
-                val isFavorite = favoriteRepository.toggleFavorite(photo)
-                val currentState = _uiState.value
-                if (currentState is DetailUiState.Success) {
-                    _uiState.value = currentState.copy(isFavorite = isFavorite)
-                }
+            val isFavorite = favoriteRepository.toggleFavorite(photo)
+            val currentState = _uiState.value
+            if (currentState is DetailUiState.Success) {
+                _uiState.value = currentState.copy(isFavorite = isFavorite)
             }
         }
     }
