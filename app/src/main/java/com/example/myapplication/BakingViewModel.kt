@@ -1,6 +1,5 @@
 package com.example.myapplication
 
-import android.annotation.SuppressLint
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -20,27 +20,32 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val unsplashRepository = UnsplashRepository()
     private val favoriteRepository = FavoriteRepository(application)
-    
+
     private var cachedPhotos: List<UnsplashPhoto> = emptyList()
 
     init {
-        fetchPhotos()
+        loadData()
         collectFavorites()
     }
 
-    private fun fetchPhotos() {
+    private fun loadData() {
         _uiState.value = HomeUiState.Loading
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                // First get favorite photos
+                val favorites = favoriteRepository.getFavoritePhotos().firstOrNull() ?: emptyList()
+
+                // Then fetch photos from unsplash
                 val fetchedPhotos = unsplashRepository.getPhotos(BuildConfig.unsplashApiKey)
                 cachedPhotos = fetchedPhotos
-                
                 val currentState = _uiState.value
                 if (currentState is HomeUiState.Success) {
-                    _uiState.value = currentState.copy(photos = fetchedPhotos)
+                    _uiState.value =
+                        currentState.copy(photos = fetchedPhotos, favoritePhotos = favorites)
                 } else {
-                    _uiState.value = HomeUiState.Success(photos = fetchedPhotos)
+                    _uiState.value =
+                        HomeUiState.Success(photos = fetchedPhotos, favoritePhotos = favorites)
                 }
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error(
@@ -49,7 +54,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
-    
+
     private fun collectFavorites() {
         viewModelScope.launch {
             favoriteRepository.getFavoritePhotos().collectLatest { favoritePhotos ->
@@ -60,7 +65,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
     }
-    
+
     // Toggle favorites filter
     fun toggleFavoritesFilter() {
         val currentState = _uiState.value
@@ -69,16 +74,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             _uiState.value = currentState.copy(showFavoritesOnly = newShowFavoritesOnly)
         }
     }
-    
+
     // Toggle favorite status for a photo
     fun toggleFavorite(photo: UnsplashPhoto) {
         viewModelScope.launch {
             favoriteRepository.toggleFavorite(photo)
         }
-    }
-    
-    // Check if a photo is favorite
-    suspend fun isPhotoFavorite(photoId: String): Boolean {
-        return favoriteRepository.isPhotoFavorite(photoId)
     }
 }
