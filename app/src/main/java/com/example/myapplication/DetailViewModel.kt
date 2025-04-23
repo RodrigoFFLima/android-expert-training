@@ -22,7 +22,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class DetailViewModel(application: Application) : AndroidViewModel(application) {
-    private val _uiState = MutableStateFlow<DetailUiState>(DetailUiState.Initial)
+    private val _uiState = MutableStateFlow<DetailUiState>(DetailUiState.Initial())
     val uiState: StateFlow<DetailUiState> = _uiState.asStateFlow()
 
     private val generativeModel = GenerativeModel(
@@ -31,21 +31,62 @@ class DetailViewModel(application: Application) : AndroidViewModel(application) 
     )
     
     private val favoriteRepository = FavoriteRepository(application)
-    private var currentPhotoId: String? = null
     private var currentPhoto: UnsplashPhoto? = null
-
-    fun describeImageFromUrl(imageUrl: String, photographerName: String, photoId: String?) {
-        _uiState.value = DetailUiState.Loading
-        currentPhotoId = photoId
+    
+    // Function to set image data from Activity
+    fun setImageData(
+        imageResourceId: Int, 
+        imageUrl: String?,
+        photographerName: String?,
+        photoId: String?,
+        altDescription: String?
+    ) {
+        // Create a new state object with the image data
+        // Keep the current state type but with updated image data
+        val currentState = _uiState.value
+        val newState = when (currentState) {
+            is DetailUiState.Initial -> DetailUiState.Initial(
+                imageResourceId = imageResourceId,
+                imageUrl = imageUrl,
+                photographerName = photographerName,
+                photoId = photoId,
+                altDescription = altDescription
+            )
+            is DetailUiState.Loading -> DetailUiState.Loading(
+                imageResourceId = imageResourceId,
+                imageUrl = imageUrl,
+                photographerName = photographerName,
+                photoId = photoId,
+                altDescription = altDescription
+            )
+            is DetailUiState.Success -> DetailUiState.Success(
+                outputText = currentState.outputText,
+                isFavorite = currentState.isFavorite,
+                imageResourceId = imageResourceId,
+                imageUrl = imageUrl,
+                photographerName = photographerName,
+                photoId = photoId,
+                altDescription = altDescription
+            )
+            is DetailUiState.Error -> DetailUiState.Error(
+                errorMessage = currentState.errorMessage,
+                imageResourceId = imageResourceId,
+                imageUrl = imageUrl,
+                photographerName = photographerName,
+                photoId = photoId,
+                altDescription = altDescription
+            )
+        }
+        _uiState.value = newState
         
-        if (photoId != null) {
-            // Create a minimal UnsplashPhoto for favorite operations
+        // Create a photo object if we have an ID and URL
+        if (photoId != null && imageUrl != null) {
             currentPhoto = UnsplashPhoto(
                 id = photoId,
                 width = 0,
                 height = 0,
                 description = null,
-                alt_description = null,
+                alt_description = altDescription,
                 urls = UnsplashUrls(
                     raw = imageUrl,
                     full = imageUrl,
@@ -56,10 +97,26 @@ class DetailViewModel(application: Application) : AndroidViewModel(application) 
                 user = UnsplashUser(
                     firstName = photographerName,
                     lastName = null,
-                    username = photographerName
+                    username = photographerName ?: "Unknown"
                 )
             )
-            
+        }
+    }
+
+    fun describeImageFromUrl(imageUrl: String, photographerName: String, photoId: String?) {
+        // Preserve image data when changing state
+        val currentState = _uiState.value
+        _uiState.value = DetailUiState.Loading(
+            imageResourceId = currentState.imageResourceId,
+            imageUrl = currentState.imageUrl,
+            photographerName = currentState.photographerName,
+            photoId = currentState.photoId,
+            altDescription = currentState.altDescription
+        )
+        
+        // No need to recreate currentPhoto as it's already set in setImageData
+
+        if (photoId != null) {
             // Check favorite status
             checkFavoriteStatus(photoId)
         }
@@ -76,20 +133,44 @@ class DetailViewModel(application: Application) : AndroidViewModel(application) 
                 } else {
                     val fallbackMessage = "Photo by $photographerName on Unsplash"
                     val isFavorite = photoId?.let { favoriteRepository.isPhotoFavorite(it) } ?: false
-                    _uiState.value = DetailUiState.Success(fallbackMessage, isFavorite)
+                    val currentImageState = _uiState.value
+                    _uiState.value = DetailUiState.Success(
+                        outputText = fallbackMessage, 
+                        isFavorite = isFavorite,
+                        imageResourceId = currentImageState.imageResourceId,
+                        imageUrl = currentImageState.imageUrl,
+                        photographerName = currentImageState.photographerName,
+                        photoId = currentImageState.photoId,
+                        altDescription = currentImageState.altDescription
+                    )
                 }
             } catch (e: Exception) {
                 val errorMessage = "Failed to process image: ${e.localizedMessage}"
-                _uiState.value = DetailUiState.Error(errorMessage)
+                val currentImageState = _uiState.value
+                _uiState.value = DetailUiState.Error(
+                    errorMessage = errorMessage,
+                    imageResourceId = currentImageState.imageResourceId,
+                    imageUrl = currentImageState.imageUrl,
+                    photographerName = currentImageState.photographerName,
+                    photoId = currentImageState.photoId,
+                    altDescription = currentImageState.altDescription
+                )
             }
         }
     }
 
     fun describeImage(resourceId: Int) {
-        _uiState.value = DetailUiState.Loading
+        // Preserve image data when changing state
+        val currentState = _uiState.value
+        _uiState.value = DetailUiState.Loading(
+            imageResourceId = currentState.imageResourceId,
+            imageUrl = currentState.imageUrl,
+            photographerName = currentState.photographerName,
+            photoId = currentState.photoId, 
+            altDescription = currentState.altDescription
+        )
         
         // Local images don't have IDs for favorites
-        currentPhotoId = null
         currentPhoto = null
 
         val image = loadBitmapFromResource(getApplication(), resourceId)
@@ -100,7 +181,15 @@ class DetailViewModel(application: Application) : AndroidViewModel(application) 
             )
         } else {
             val errorMessage = "Failed to load image from resources"
-            _uiState.value = DetailUiState.Error(errorMessage)
+            val currentImageState = _uiState.value
+            _uiState.value = DetailUiState.Error(
+                errorMessage = errorMessage,
+                imageResourceId = currentImageState.imageResourceId,
+                imageUrl = currentImageState.imageUrl,
+                photographerName = currentImageState.photographerName,
+                photoId = currentImageState.photoId,
+                altDescription = currentImageState.altDescription
+            )
         }
     }
     
@@ -136,12 +225,29 @@ class DetailViewModel(application: Application) : AndroidViewModel(application) 
                     }
                 )
                 response.text?.let { outputContent ->
-                    val isFavorite = currentPhotoId?.let { favoriteRepository.isPhotoFavorite(it) } ?: false
-                    _uiState.value = DetailUiState.Success(outputContent, isFavorite)
+                    val currentState = _uiState.value
+                    val isFavorite = currentState.photoId?.let { favoriteRepository.isPhotoFavorite(it) } ?: false
+                    _uiState.value = DetailUiState.Success(
+                        outputText = outputContent, 
+                        isFavorite = isFavorite,
+                        imageResourceId = currentState.imageResourceId,
+                        imageUrl = currentState.imageUrl,
+                        photographerName = currentState.photographerName,
+                        photoId = currentState.photoId,
+                        altDescription = currentState.altDescription
+                    )
                 }
             } catch (e: Exception) {
                 val errorMessage = e.localizedMessage ?: "Error processing image"
-                _uiState.value = DetailUiState.Error(errorMessage)
+                val currentState = _uiState.value
+                _uiState.value = DetailUiState.Error(
+                    errorMessage = errorMessage,
+                    imageResourceId = currentState.imageResourceId,
+                    imageUrl = currentState.imageUrl,
+                    photographerName = currentState.photographerName,
+                    photoId = currentState.photoId,
+                    altDescription = currentState.altDescription
+                )
             }
         }
     }

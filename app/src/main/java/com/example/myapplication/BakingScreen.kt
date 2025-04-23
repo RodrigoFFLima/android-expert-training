@@ -163,6 +163,7 @@ fun BakingScreen(
                                             photo.user.fullName
                                         )
                                         putExtra(DetailActivity.PHOTO_ID_KEY, photo.id)
+                                        putExtra(DetailActivity.ALT_DESCRIPTION_KEY, photo.alt_description ?: photo.bestDescription)
                                     }
                                     context.startActivity(intent)
                                 },
@@ -208,6 +209,10 @@ fun BakingScreen(
                                                         DetailActivity.IMAGE_RESOURCE_ID_KEY,
                                                         fallbackImages[index]
                                                     )
+                                                    putExtra(
+                                                        DetailActivity.ALT_DESCRIPTION_KEY,
+                                                        context.getString(imageDescriptions[index])
+                                                    )
                                                 }
                                             context.startActivity(intent)
                                         },
@@ -222,6 +227,10 @@ fun BakingScreen(
                                                 putExtra(
                                                     DetailActivity.IMAGE_RESOURCE_ID_KEY,
                                                     fallbackImages[index]
+                                                )
+                                                putExtra(
+                                                    DetailActivity.ALT_DESCRIPTION_KEY,
+                                                    context.getString(imageDescriptions[index])
                                                 )
                                             }
                                         context.startActivity(intent)

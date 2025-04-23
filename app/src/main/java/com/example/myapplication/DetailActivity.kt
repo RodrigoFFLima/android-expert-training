@@ -47,6 +47,7 @@ class DetailActivity : ComponentActivity() {
         val imageUrl = intent.getStringExtra(IMAGE_URL_KEY)
         val photographerName = intent.getStringExtra(PHOTOGRAPHER_NAME_KEY)
         val photoId = intent.getStringExtra(PHOTO_ID_KEY)
+        val altDescription = intent.getStringExtra(ALT_DESCRIPTION_KEY)
         
         setContent {
             MyApplicationTheme {
@@ -61,13 +62,18 @@ class DetailActivity : ComponentActivity() {
                             .padding(innerPadding),
                         color = MaterialTheme.colorScheme.background
                     ) {
-                        if (imageUrl != null) {
-                            // Remote image from Unsplash
-                            ImageDetailScreenFromUrl(imageUrl, photographerName ?: "Unknown photographer", photoId)
-                        } else if (imageResourceId != -1) {
-                            // Fallback to local resource
-                            ImageDetailScreen(imageResourceId)
-                        }
+                        val viewModel: DetailViewModel = viewModel()
+                        // Set data in the ViewModel
+                        viewModel.setImageData(
+                            imageResourceId = imageResourceId,
+                            imageUrl = imageUrl,
+                            photographerName = photographerName,
+                            photoId = photoId,
+                            altDescription = altDescription
+                        )
+                        
+                        // Use the single DetailScreen for both image types
+                        DetailScreen(viewModel)
                     }
                 }
             }
@@ -79,11 +85,12 @@ class DetailActivity : ComponentActivity() {
         const val IMAGE_URL_KEY = "image_url" 
         const val PHOTOGRAPHER_NAME_KEY = "photographer_name"
         const val PHOTO_ID_KEY = "photo_id"
+        const val ALT_DESCRIPTION_KEY = "alt_description"
     }
 }
 
 @Composable
-fun ImageDetailScreen(imageResourceId: Int, viewModel: DetailViewModel = viewModel()) {
+fun DetailScreen(viewModel: DetailViewModel) {
     val detailUiState by viewModel.uiState.collectAsState()
 
     Column(
@@ -92,106 +99,78 @@ fun ImageDetailScreen(imageResourceId: Int, viewModel: DetailViewModel = viewMod
             .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Display the full-size image
-        Image(
-            painter = painterResource(id = imageResourceId),
-            contentDescription = "Detailed image view",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp),
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Display state
-        when (detailUiState) {
-            is DetailUiState.Initial -> {
-                viewModel.describeImage(imageResourceId)
-            }
-            is DetailUiState.Loading -> {
-                CircularProgressIndicator()
-            }
-            is DetailUiState.Success -> {
-                Text(
-                    text = "AI Description:",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                Text(text = (detailUiState as DetailUiState.Success).outputText)
-            }
-            is DetailUiState.Error -> {
-                Text(
-                    text = "Error: ${(detailUiState as DetailUiState.Error).errorMessage}",
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ImageDetailScreenFromUrl(
-    imageUrl: String,
-    photographerName: String,
-    photoId: String?,
-    viewModel: DetailViewModel = viewModel()
-) {
-    val detailUiState by viewModel.uiState.collectAsState()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Display the full-size image from URL
-        AsyncImage(
-            model = imageUrl,
-            contentDescription = "Detailed image view",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp),
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Row for photographer credit and favorite button
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Display photographer credit
-            Text(
-                text = "Photo by $photographerName on Unsplash",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.weight(1f)
+        // Display the appropriate image with proper accessibility
+        if (detailUiState.imageUrl != null) {
+            // Remote image from URL
+            AsyncImage(
+                model = detailUiState.imageUrl,
+                contentDescription = detailUiState.altDescription ?: "Detailed image view",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp),
+                contentScale = ContentScale.Crop
             )
-            
-            // Only show favorite button if we have a photoId
-            if (photoId != null) {
-                // Favorite button - only shown when in Success state with isFavorite status
-                if (detailUiState is DetailUiState.Success) {
-                    val isFavorite = (detailUiState as DetailUiState.Success).isFavorite
-                    IconButton(onClick = { viewModel.toggleFavorite() }) {
-                        Icon(
-                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                        )
+        } else if (detailUiState.imageResourceId != -1) {
+            // Local resource image
+            Image(
+                painter = painterResource(id = detailUiState.imageResourceId),
+                contentDescription = detailUiState.altDescription ?: "Detailed image view",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp),
+                contentScale = ContentScale.Crop
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Only show photographer credit and favorite button for Unsplash photos
+        if (detailUiState.imageUrl != null) {
+            // Row for photographer credit and favorite button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Display photographer credit
+                Text(
+                    text = "Photo by ${detailUiState.photographerName ?: "Unknown photographer"} on Unsplash",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                
+                // Only show favorite button if we have a photoId
+                if (detailUiState.photoId != null) {
+                    // Favorite button - only shown when in Success state with isFavorite status
+                    if (detailUiState is DetailUiState.Success) {
+                        val isFavorite = (detailUiState as DetailUiState.Success).isFavorite
+                        IconButton(onClick = { viewModel.toggleFavorite() }) {
+                            Icon(
+                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                                contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
+                                tint = if (isFavorite) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        }
                     }
                 }
             }
+            
+            Spacer(modifier = Modifier.height(16.dp))
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
         
         // Display state
         when (detailUiState) {
             is DetailUiState.Initial -> {
-                // Trigger Gemini processing for the URL image
-                viewModel.describeImageFromUrl(imageUrl, photographerName, photoId)
+                if (detailUiState.imageUrl != null) {
+                    // Trigger Gemini processing for the URL image
+                    viewModel.describeImageFromUrl(
+                        detailUiState.imageUrl!!,
+                        detailUiState.photographerName ?: "Unknown photographer",
+                        detailUiState.photoId
+                    )
+                } else if (detailUiState.imageResourceId != -1) {
+                    // Trigger Gemini processing for the local image
+                    viewModel.describeImage(detailUiState.imageResourceId)
+                }
             }
             is DetailUiState.Loading -> {
                 CircularProgressIndicator()

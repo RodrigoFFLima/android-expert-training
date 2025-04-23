@@ -33,26 +33,57 @@ sealed interface HomeUiState {
  * Top-level UI state for the detail screen
  */
 sealed interface DetailUiState {
+    // Common properties that should be available in all states
+    val imageResourceId: Int
+    val imageUrl: String?
+    val photographerName: String?
+    val photoId: String?
+    val altDescription: String?
+    
     /**
      * Initial state
      */
-    object Initial : DetailUiState
+    data class Initial(
+        override val imageResourceId: Int = -1,
+        override val imageUrl: String? = null,
+        override val photographerName: String? = null,
+        override val photoId: String? = null,
+        override val altDescription: String? = null
+    ) : DetailUiState
     
     /**
      * Loading state
      */
-    object Loading : DetailUiState
+    data class Loading(
+        override val imageResourceId: Int = -1,
+        override val imageUrl: String? = null,
+        override val photographerName: String? = null,
+        override val photoId: String? = null,
+        override val altDescription: String? = null
+    ) : DetailUiState
     
     /**
      * Success state with the generated description
      */
     data class Success(
         val outputText: String,
-        val isFavorite: Boolean = false
+        val isFavorite: Boolean = false,
+        override val imageResourceId: Int = -1,
+        override val imageUrl: String? = null,
+        override val photographerName: String? = null,
+        override val photoId: String? = null,
+        override val altDescription: String? = null
     ) : DetailUiState
     
     /**
      * Error state
      */
-    data class Error(val errorMessage: String) : DetailUiState
+    data class Error(
+        val errorMessage: String,
+        override val imageResourceId: Int = -1,
+        override val imageUrl: String? = null,
+        override val photographerName: String? = null,
+        override val photoId: String? = null,
+        override val altDescription: String? = null
+    ) : DetailUiState
 }
