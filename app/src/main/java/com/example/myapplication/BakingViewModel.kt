@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
@@ -33,19 +32,16 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // First get favorite photos
-                val favorites = favoriteRepository.getFavoritePhotos().firstOrNull() ?: emptyList()
-
                 // Then fetch photos from unsplash
                 val fetchedPhotos = unsplashRepository.getPhotos(BuildConfig.unsplashApiKey)
                 cachedPhotos = fetchedPhotos
                 val currentState = _uiState.value
                 if (currentState is HomeUiState.Success) {
                     _uiState.value =
-                        currentState.copy(photos = fetchedPhotos, favoritePhotos = favorites)
+                        currentState.copy(photos = fetchedPhotos)
                 } else {
                     _uiState.value =
-                        HomeUiState.Success(photos = fetchedPhotos, favoritePhotos = favorites)
+                        HomeUiState.Success(photos = fetchedPhotos)
                 }
             } catch (e: Exception) {
                 _uiState.value = HomeUiState.Error(
