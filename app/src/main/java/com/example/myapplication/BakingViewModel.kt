@@ -31,7 +31,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadData() {
         _uiState.value = HomeUiState.Loading
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 // First get favorite photos
                 val favorites = favoriteRepository.getFavoritePhotos().firstOrNull() ?: emptyList()

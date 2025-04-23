@@ -121,7 +121,7 @@ class DetailViewModel(application: Application) : AndroidViewModel(application) 
             checkFavoriteStatus(photoId)
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 val bitmap = downloadImageFromUrl(imageUrl)
 
@@ -216,7 +216,7 @@ class DetailViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun processImageForDescription(bitmap: Bitmap, prompt: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
                 val response = generativeModel.generateContent(
                     content {
