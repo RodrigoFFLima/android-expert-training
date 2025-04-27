@@ -13,33 +13,26 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.core.view.WindowCompat
+import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.myapplication.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Enable edge-to-edge display
-        enableEdgeToEdge()
-        
+        val factory = BakingViewModelFactory(this)
         setContent {
+            val viewModel: BakingViewModel = viewModel(
+                factory = factory
+            )
             MyApplicationTheme {
                 // Scaffold with proper edge-to-edge insets handling
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                ) { innerPadding ->
-                    // A surface container using the 'background' color from the theme
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        color = MaterialTheme.colorScheme.background,
-                    ) {
-                        BakingScreen()
-                    }
+                    color = MaterialTheme.colorScheme.background,
+                ) {
+                    BakingScreen(viewModel)
                 }
             }
         }

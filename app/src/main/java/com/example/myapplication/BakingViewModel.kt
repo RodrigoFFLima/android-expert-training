@@ -13,19 +13,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class HomeViewModel(application: Application) : AndroidViewModel(application) {
-    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
-    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+@SuppressLint("StaticFieldLeak")
+class BakingViewModel(
+    private val context: Context
+) : ViewModel() {
+    private val _uiState: MutableStateFlow<UiState> =
+        MutableStateFlow(UiState.Initial)
+    val uiState: StateFlow<UiState> =
+        _uiState.asStateFlow()
 
-    private val unsplashRepository = UnsplashRepository()
-    private val favoriteRepository = FavoriteRepository(application)
-
-    private var cachedPhotos: List<UnsplashPhoto> = emptyList()
-
-    init {
-        loadData()
-        collectFavorites()
-    }
+    private val generativeModel = GenerativeModel(
+        modelName = "gemini-flash",
+        apiKey = BuildConfig.apiKey
+    )
 
     private fun loadData() {
         _uiState.value = HomeUiState.Loading
@@ -47,18 +47,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 _uiState.value = HomeUiState.Error(
                     errorMessage = e.localizedMessage ?: "Failed to load photos"
                 )
+                    .text
             }
-        }
-    }
-
-    private fun collectFavorites() {
-        viewModelScope.launch {
-            favoriteRepository.getFavoritePhotos().collectLatest { favoritePhotos ->
-                val currentState = _uiState.value
-                if (currentState is HomeUiState.Success) {
-                    _uiState.value = currentState.copy(favoritePhotos = favoritePhotos)
+                .takeIf { it.isSuccess }
+                ?.let { response ->
+                    _uiState.value = UiState.Success(response.getOrDefault("")!!)
                 }
-            }
         }
     }
 

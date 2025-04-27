@@ -3,6 +3,7 @@ package com.example.myapplication.data
 import android.content.Context
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 
 class FavoriteRepository(context: Context) {
     private val favoritePhotoDao = AppDatabase.getDatabase(context).favoritePhotoDao()
@@ -16,6 +17,7 @@ class FavoriteRepository(context: Context) {
     
     // Check if a photo is marked as favorite
     suspend fun isPhotoFavorite(photoId: String): Boolean {
+        Thread.sleep(10000)
         return favoritePhotoDao.isPhotoFavorite(photoId)
     }
     
@@ -30,13 +32,15 @@ class FavoriteRepository(context: Context) {
     }
     
     // Toggle favorite status
-    suspend fun toggleFavorite(photo: UnsplashPhoto): Boolean {
-        val isFavorite = isPhotoFavorite(photo.id)
-        if (isFavorite) {
-            removeFromFavorites(photo.id)
-        } else {
-            addToFavorites(photo)
+    fun toggleFavorite(photo: UnsplashPhoto): Boolean {
+        return runBlocking {
+            val isFavorite = isPhotoFavorite(photo.id)
+            if (isFavorite) {
+                removeFromFavorites(photo.id)
+            } else {
+                addToFavorites(photo)
+            }
+            return@runBlocking !isFavorite
         }
-        return !isFavorite
     }
 }
