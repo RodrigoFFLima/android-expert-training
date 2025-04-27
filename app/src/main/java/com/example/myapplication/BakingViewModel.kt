@@ -24,45 +24,27 @@ class BakingViewModel(
         _uiState.asStateFlow()
 
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-1.5-flash",
+        modelName = "gemini-flash",
         apiKey = BuildConfig.apiKey
     )
 
     private fun loadData() {
         _uiState.value = HomeUiState.Loading
 
-        viewModelScope.launch {
-            try {
-                // First get favorite photos
-                val favorites = favoriteRepository.getFavoritePhotos().firstOrNull() ?: emptyList()
-
-                // Then fetch photos from unsplash
-                val fetchedPhotos = unsplashRepository.getPhotos(BuildConfig.unsplashApiKey)
-                cachedPhotos = fetchedPhotos
-                val currentState = _uiState.value
-                if (currentState is HomeUiState.Success) {
-                    _uiState.value =
-                        currentState.copy(photos = fetchedPhotos, favoritePhotos = favorites)
-                } else {
-                    _uiState.value =
-                        HomeUiState.Success(photos = fetchedPhotos, favoritePhotos = favorites)
-                }
-            } catch (e: Exception) {
-                _uiState.value = HomeUiState.Error(
-                    errorMessage = e.localizedMessage ?: "Failed to load photos"
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                generativeModel.generateContent(
+                    content {
+                        image(bitmap)
+                        text(prompt)
+                    }
                 )
+                    .text
             }
-        }
-    }
-
-    private fun collectFavorites() {
-        viewModelScope.launch {
-            favoriteRepository.getFavoritePhotos().collectLatest { favoritePhotos ->
-                val currentState = _uiState.value
-                if (currentState is HomeUiState.Success) {
-                    _uiState.value = currentState.copy(favoritePhotos = favoritePhotos)
+                .takeIf { it.isSuccess }
+                ?.let { response ->
+                    _uiState.value = UiState.Success(response.getOrDefault("")!!)
                 }
-            }
         }
     }
 
