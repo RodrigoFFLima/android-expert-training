@@ -44,37 +44,19 @@ class DetailActivity : ComponentActivity() {
         
         // Get the image information from the intent
         val imageResourceId = intent.getIntExtra(IMAGE_RESOURCE_ID_KEY, -1)
-        val imageUrl = intent.getStringExtra(IMAGE_URL_KEY)
-        val photographerName = intent.getStringExtra(PHOTOGRAPHER_NAME_KEY)
-        val photoId = intent.getStringExtra(PHOTO_ID_KEY)
-        val altDescription = intent.getStringExtra(ALT_DESCRIPTION_KEY)
-        
+        val factory = BakingViewModelFactory(this)
+
         setContent {
+            val viewModel: BakingViewModel = viewModel(
+                factory = factory
+            )
             MyApplicationTheme {
                 // Use Scaffold for proper insets handling
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                ) { innerPadding ->
-                    // A surface container using the 'background' color from the theme
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(innerPadding),
-                        color = MaterialTheme.colorScheme.background
-                    ) {
-                        val viewModel: DetailViewModel = viewModel()
-                        // Set data in the ViewModel
-                        viewModel.setImageData(
-                            imageResourceId = imageResourceId,
-                            imageUrl = imageUrl,
-                            photographerName = photographerName,
-                            photoId = photoId,
-                            altDescription = altDescription
-                        )
-                        
-                        // Use the single DetailScreen for both image types
-                        DetailScreen(viewModel)
-                    }
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    ImageDetailScreen(imageResourceId, viewModel)
                 }
             }
         }
@@ -91,8 +73,6 @@ class DetailActivity : ComponentActivity() {
 
 @Composable
 fun ImageDetailScreen(imageResourceId: Int, viewModel: BakingViewModel = viewModel()) {
-    viewModel.init(LocalContext.current)
-    viewModel.describeImage(imageResourceId)
     val uiState by viewModel.uiState.collectAsState()
     Column(
         modifier = Modifier

@@ -14,19 +14,19 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
-class HomeViewModel(application: Application) : AndroidViewModel(application) {
-    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Loading)
-    val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
+@SuppressLint("StaticFieldLeak")
+class BakingViewModel(
+    private val context: Context
+) : ViewModel() {
+    private val _uiState: MutableStateFlow<UiState> =
+        MutableStateFlow(UiState.Initial)
+    val uiState: StateFlow<UiState> =
+        _uiState.asStateFlow()
 
-    private val unsplashRepository = UnsplashRepository()
-    private val favoriteRepository = FavoriteRepository(application)
-
-    private var cachedPhotos: List<UnsplashPhoto> = emptyList()
-
-    init {
-        loadData()
-        collectFavorites()
-    }
+    private val generativeModel = GenerativeModel(
+        modelName = "gemini-1.5-flash",
+        apiKey = BuildConfig.apiKey
+    )
 
     private fun loadData() {
         _uiState.value = HomeUiState.Loading

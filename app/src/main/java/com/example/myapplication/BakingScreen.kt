@@ -68,7 +68,11 @@ val imageDescriptions = arrayOf(
 fun BakingScreen(
     homeViewModel: HomeViewModel = viewModel()
 ) {
-    val homeUiState by homeViewModel.uiState.collectAsState()
+    val selectedImage = remember { mutableIntStateOf(0) }
+    val placeholderPrompt = stringResource(R.string.prompt_placeholder)
+    val placeholderResult = stringResource(R.string.results_placeholder)
+    var prompt by rememberSaveable { mutableStateOf(placeholderPrompt) }
+    val uiState by bakingViewModel.uiState.collectAsState()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     
@@ -285,33 +289,22 @@ fun ImageItem(
                     .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
                     .padding(4.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Username text
-                    Text(
-                        text = photo.user.username,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
-                    
-                    Spacer(modifier = Modifier.width(4.dp))
-                    
-                    // Favorite icon
-                    IconButton(
-                        onClick = onFavoriteClick,
-                        modifier = Modifier.size(28.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                            contentDescription = if (isFavorite) "Remove from favorites" else "Add to favorites",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
+                Text(text = stringResource(R.string.action_go))
+            }
+        }
+
+        if (uiState is UiState.Loading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+        } else {
+            var textColor = MaterialTheme.colorScheme.onSurface
+            val result = if (uiState is UiState.Error) {
+                textColor = MaterialTheme.colorScheme.error
+                (uiState as UiState.Error).errorMessage
+            } else if (uiState is UiState.Success) {
+                textColor = MaterialTheme.colorScheme.onSurface
+                (uiState as UiState.Success).outputText
+            } else {
+                placeholderResult
             }
         }
     }
