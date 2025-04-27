@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 @SuppressLint("StaticFieldLeak")
@@ -32,12 +31,21 @@ class BakingViewModel(
         _uiState.value = HomeUiState.Loading
 
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                generativeModel.generateContent(
-                    content {
-                        image(bitmap)
-                        text(prompt)
-                    }
+            try {
+                // Then fetch photos from unsplash
+                val fetchedPhotos = unsplashRepository.getPhotos(BuildConfig.unsplashApiKey)
+                cachedPhotos = fetchedPhotos
+                val currentState = _uiState.value
+                if (currentState is HomeUiState.Success) {
+                    _uiState.value =
+                        currentState.copy(photos = fetchedPhotos)
+                } else {
+                    _uiState.value =
+                        HomeUiState.Success(photos = fetchedPhotos)
+                }
+            } catch (e: Exception) {
+                _uiState.value = HomeUiState.Error(
+                    errorMessage = e.localizedMessage ?: "Failed to load photos"
                 )
                     .text
             }
