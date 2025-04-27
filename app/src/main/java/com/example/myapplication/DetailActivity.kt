@@ -90,9 +90,10 @@ class DetailActivity : ComponentActivity() {
 }
 
 @Composable
-fun DetailScreen(viewModel: DetailViewModel) {
-    val detailUiState by viewModel.uiState.collectAsState()
-
+fun ImageDetailScreen(imageResourceId: Int, viewModel: BakingViewModel = viewModel()) {
+    viewModel.init(LocalContext.current)
+    viewModel.describeImage(imageResourceId)
+    val uiState by viewModel.uiState.collectAsState()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -158,21 +159,9 @@ fun DetailScreen(viewModel: DetailViewModel) {
         }
         
         // Display state
-        when (detailUiState) {
-            is DetailUiState.Initial -> {
-                if (detailUiState.imageUrl != null) {
-                    // Trigger Gemini processing for the URL image
-                    viewModel.describeImageFromUrl(
-                        detailUiState.imageUrl!!,
-                        detailUiState.photographerName ?: "Unknown photographer",
-                        detailUiState.photoId
-                    )
-                } else if (detailUiState.imageResourceId != -1) {
-                    // Trigger Gemini processing for the local image
-                    viewModel.describeImage(detailUiState.imageResourceId)
-                }
-            }
-            is DetailUiState.Loading -> {
+        when (val state = uiState) {
+            is UiState.Initial,
+            is UiState.Loading -> {
                 CircularProgressIndicator()
             }
             is DetailUiState.Success -> {
