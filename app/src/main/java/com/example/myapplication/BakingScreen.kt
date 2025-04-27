@@ -193,10 +193,13 @@ fun BakingScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     itemsIndexed(fallbackImages) { index, image ->
+                        // Bug: Variable padding based on index causing grid items to shift
+                        val extraPadding = if (index % 2 == 0) 16.dp else 8.dp
+                        
                         // Card for local images with similar layout to Unsplash images
                         Card(
                             modifier = Modifier
-                                .padding(8.dp)
+                                .padding(start = extraPadding, end = 8.dp, top = 8.dp, bottom = 8.dp)
                                 .fillMaxWidth()
                                 .height(180.dp)
                         ) {
@@ -266,9 +269,12 @@ fun ImageItem(
     onImageClick: () -> Unit,
     isFavorite: Boolean
 ) {
+    // Bug: Variable padding based on username length causing grid items to shift
+    val extraPadding = if (photo.user.username.length % 2 == 0) 16.dp else 8.dp
+    
     Card(
         modifier = Modifier
-            .padding(8.dp)
+            .padding(start = extraPadding, end = 8.dp, top = 8.dp, bottom = 8.dp)
             .fillMaxWidth()
             .height(180.dp)
             .clickable(onClick = onImageClick) // Click on image to go to detail view
