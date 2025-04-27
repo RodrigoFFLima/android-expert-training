@@ -1,21 +1,25 @@
 # Baking with Gemini
 
-An Android application that uses Google's Gemini AI to generate recipes and information about baked goods from images.
+An Android application that uses Google's Gemini AI to generate recipes and information about baked goods from images, with photos from Unsplash API.
 
 ## Overview
 
 This Android application allows users to:
-- Select from a collection of baking images (cupcakes, cookies, cakes)
+- Browse high-quality bakery images from Unsplash API
+- Select from a collection of baking images
 - Enter prompts related to the selected image
 - Receive AI-generated responses from Google's Gemini model about recipes and baking information
 
 ## Features
 
+- Dynamic image gallery with photos from Unsplash API
 - Image selection interface with visual feedback for the selected item
+- Image detail view with photographer attribution
 - Text input for customized prompts
 - Integration with Google's Gemini AI model (gemini-1.5-flash)
 - Real-time status updates with loading indicators
 - Error handling with visual feedback
+- Fallback to local images when API is unavailable
 
 ## Tech Stack
 
@@ -23,6 +27,8 @@ This Android application allows users to:
 - **UI Framework**: Jetpack Compose
 - **Architecture**: MVVM (Model-View-ViewModel)
 - **AI Integration**: Google Generative AI SDK
+- **Networking**: Retrofit, OkHttp
+- **Image Loading**: Coil
 - **Minimum SDK**: 24 (Android 7.0)
 - **Target SDK**: 35 (Android 15)
 
@@ -33,6 +39,9 @@ This Android application allows users to:
 - Lifecycle Components: 2.8.7
 - Google Generative AI SDK: 0.9.0
 - Material Design 3
+- Retrofit: 2.9.0
+- OkHttp: 4.11.0
+- Coil: 2.4.0
 
 ## Setup Instructions
 
@@ -45,9 +54,11 @@ This Android application allows users to:
 ### API Key Setup
 
 1. Obtain a Gemini API key from [Google AI Studio](https://aistudio.google.com/)
-2. Add your API key to `local.properties`:
+2. Obtain an Unsplash API key from [Unsplash Developer Portal](https://unsplash.com/developers)
+3. Add your API keys to `local.properties`:
    ```
    apiKey=YOUR_GEMINI_API_KEY
+   unsplashApiKey=YOUR_UNSPLASH_API_KEY
    ```
 
 ### Build and Run
@@ -63,14 +74,23 @@ This Android application allows users to:
   - `MainActivity.kt` - Entry point that hosts the main Compose UI
   - `BakingScreen.kt` - Main Compose UI for baking interface
   - `BakingViewModel.kt` - Handles business logic and Gemini API interaction
-  - `UiState.kt` - Sealed interface for managing UI states
+  - `DetailActivity.kt` - Activity for displaying image details
+  - `UiState.kt` - Sealed interfaces for managing UI states
+  - `data/` - Data layer
+    - `UnsplashApiService.kt` - Retrofit API interface for Unsplash
+    - `UnsplashPhoto.kt` - Data models for Unsplash API
+    - `UnsplashRepository.kt` - Repository for handling Unsplash API requests
 
 ## How It Works
 
-1. The app displays a selection of baked goods images
-2. User selects an image and enters a prompt (e.g., "Provide a recipe for the baked goods in the image")
-3. The app sends the image and prompt to the Gemini API
-4. Results are displayed in the text area below the inputs
+1. The app fetches baking-related images from Unsplash API
+2. Images are displayed in a horizontally scrollable gallery
+3. User selects an image and can view details by tapping on it
+4. In the detail view, users can see the full image and photographer attribution
+5. User can enter a prompt (e.g., "Describe the image.")
+6. For local images, the app sends the image and prompt to the Gemini API
+7. For Unsplash images, the app provides information about the photographer
+8. Results are displayed in the text area below the inputs
 
 ## License
 

@@ -1,17 +1,23 @@
 package com.example.myapplication
 
-import android.graphics.Bitmap
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.content
+import com.example.myapplication.data.FavoriteRepository
+import com.example.myapplication.data.UnsplashPhoto
+import com.example.myapplication.data.UnsplashRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
-class BakingViewModel : ViewModel() {
+@SuppressLint("StaticFieldLeak")
+class BakingViewModel(
+    private val context: Context
+) : ViewModel() {
     private val _uiState: MutableStateFlow<UiState> =
         MutableStateFlow(UiState.Initial)
     val uiState: StateFlow<UiState> =
@@ -22,11 +28,8 @@ class BakingViewModel : ViewModel() {
         apiKey = BuildConfig.apiKey
     )
 
-    fun sendPrompt(
-        bitmap: Bitmap,
-        prompt: String
-    ) {
-        _uiState.value = UiState.Loading
+    private fun loadData() {
+        _uiState.value = HomeUiState.Loading
 
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
@@ -42,6 +45,22 @@ class BakingViewModel : ViewModel() {
                 ?.let { response ->
                     _uiState.value = UiState.Success(response.getOrDefault("")!!)
                 }
+        }
+    }
+
+    // Toggle favorites filter
+    fun toggleFavoritesFilter() {
+        val currentState = _uiState.value
+        if (currentState is HomeUiState.Success) {
+            val newShowFavoritesOnly = !currentState.showFavoritesOnly
+            _uiState.value = currentState.copy(showFavoritesOnly = newShowFavoritesOnly)
+        }
+    }
+
+    // Toggle favorite status for a photo
+    fun toggleFavorite(photo: UnsplashPhoto) {
+        viewModelScope.launch {
+            favoriteRepository.toggleFavorite(photo)
         }
     }
 }
